@@ -1,0 +1,94 @@
+name: Deploy Campus Portal
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  validate:
+    name: Validate (build + synth)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install infra deps
+        working-directory: infra
+        run: npm ci
+
+      - name: Install backend deps
+        working-directory: backend
+        run: npm ci
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Type-check backend
+        working-directory: backend
+        run: npm run build
+
+      - name: Type-check frontend
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: CDK synth (no AWS calls beyond template synthesis)
+        working-directory: infra
+        run: npx cdk synth --all
+
+  deploy:
+    name: Deploy to AWS
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Install infra deps
+        working-directory: infra
+        run: npm ci
+
+      - name: Install backend deps
+        working-directory: backend
+        run: npm ci
+
+      - name: Deploy Auth, Data, and Api stacks
+        working-directory: infra
+        run: npx cdk deploy CampusPortalAuthStack CampusPortalDataStack CampusPortalApiStack --require-approval never --outputs-file outputs.json
+
+      - name: Generate frontend .env from stack outputs
+        working-directory: infra
+        run: npx tsx scripts/generate-frontend-env.ts
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Deploy Web stack (uploads frontend/dist, invalidates CloudFront)
+        working-directory: infra
+        run: npx cdk deploy CampusPortalWebStack --require-approval never

@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/
+cdk.out/
+*.js
+!.eslintrc.js
+!jest.config.js
+*.d.ts
+.env
+.env.local
+outputs.json
+*.log
+.DS_Store
