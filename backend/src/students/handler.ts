@@ -80,29 +80,36 @@ export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer) =>
           throw err;
         }
 
-        await cognito.send(
-          new AdminSetUserPasswordCommand({ UserPoolId, Username: body.email, Password: password, Permanent: true })
-        );
-        await cognito.send(
-          new AdminAddUserToGroupCommand({ UserPoolId, Username: body.email, GroupName: "Students" })
-        );
-        const cognitoUser = await cognito.send(new AdminGetUserCommand({ UserPoolId, Username: body.email }));
-        const cognitoSub = cognitoUser.UserAttributes?.find((a) => a.Name === "sub")?.Value;
-        if (!cognitoSub) return badRequest("Could not resolve the new Cognito user's sub");
+        try {
+          await cognito.send(
+            new AdminSetUserPasswordCommand({ UserPoolId, Username: body.email, Password: password, Permanent: true })
+          );
+          await cognito.send(
+            new AdminAddUserToGroupCommand({ UserPoolId, Username: body.email, GroupName: "Students" })
+          );
+          const cognitoUser = await cognito.send(new AdminGetUserCommand({ UserPoolId, Username: body.email }));
+          const cognitoSub = cognitoUser.UserAttributes?.find((a) => a.Name === "sub")?.Value;
+          if (!cognitoSub) throw new Error("Could not resolve the new Cognito user's sub");
 
-        const student: Student = {
-          studentId: newStudentId,
-          cognitoSub,
-          email: body.email,
-          firstName: body.firstName,
-          lastName: body.lastName,
-          program: body.program ?? "",
-          year: body.year ?? 1,
-          status: "active",
-          createdAt: new Date().toISOString(),
-        };
-        await ddb.send(new PutCommand({ TableName: TableNames.students, Item: student }));
-        return created({ ...student, temporaryPassword: password });
+          const student: Student = {
+            studentId: newStudentId,
+            cognitoSub,
+            email: body.email,
+            firstName: body.firstName,
+            lastName: body.lastName,
+            program: body.program ?? "",
+            year: body.year ?? 1,
+            status: "active",
+            createdAt: new Date().toISOString(),
+          };
+          await ddb.send(new PutCommand({ TableName: TableNames.students, Item: student }));
+          return created({ ...student, temporaryPassword: password });
+        } catch (err) {
+          // Cognito user was created above; if anything after that fails, remove it
+          // so the email isn't stuck as an orphan blocking future retries.
+          await cognito.send(new AdminDeleteUserCommand({ UserPoolId, Username: body.email })).catch(() => {});
+          throw err;
+        }
       }
 
       case "PUT /students/{studentId}": {
