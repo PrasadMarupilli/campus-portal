@@ -68,6 +68,17 @@ npx tsx scripts/seed.ts
 
 This creates one admin (`admin@campus.edu`) and two student accounts (`alice@campus.edu`, `bob@campus.edu`), all with password `CampusDemo1`, plus sample courses, enrollments, and an announcement.
 
+## Onboarding a new student
+
+Students authenticate via Cognito, and there's no public sign-up (only admins create accounts). A student's own pages (attendance, enrollments, documents) resolve their identity from a `custom:studentId` attribute on their Cognito login token, so the Cognito account and the database record need to be created together with matching IDs. Use the script, not the "Onboard a student" form on the Students page directly (that form is only for linking a Cognito user that already has a matching setup — see the in-app hint):
+
+```bash
+cd infra
+npx tsx scripts/add-student.ts --email=jane@campus.edu --firstName=Jane --lastName=Doe --program="Computer Science" --year=1
+```
+
+Omit `--password` to use the default demo password (`CampusDemo1`), or pass your own with `--password=...`.
+
 ## Local development
 
 ```bash

@@ -33,6 +33,7 @@ export function StudentsPage() {
       <table>
         <thead>
           <tr>
+            <th>Student ID</th>
             <th>Name</th>
             <th>Email</th>
             <th>Program</th>
@@ -43,6 +44,7 @@ export function StudentsPage() {
         <tbody>
           {students.map((s) => (
             <tr key={s.studentId}>
+              <td><span className="code">{s.studentId}</span></td>
               <td>{s.firstName} {s.lastName}</td>
               <td>{s.email}</td>
               <td>{s.program}</td>
@@ -55,8 +57,10 @@ export function StudentsPage() {
 
       <h2>Onboard a student</h2>
       <p className="hint">
-        The Cognito user account must already exist (created via the seed script or AWS Console/CLI).
-        Enter its Cognito "sub" here to link it to a new student record.
+        Recommended: run <code>npm run add-student -- --email=... --firstName=... --lastName=...</code> from{" "}
+        <code>infra/</code> — it creates the Cognito login and this record together, correctly linked.
+        The form below is for linking a student record to a Cognito user that <em>already exists</em>
+        (e.g. one created without the script) — enter its Cognito "sub" to link it.
       </p>
       <form className="card" onSubmit={onSubmit}>
         <label>

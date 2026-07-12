@@ -11,6 +11,7 @@
     "deploy": "cdk deploy",
     "diff": "cdk diff",
     "seed": "tsx scripts/seed.ts",
+    "add-student": "tsx scripts/add-student.ts",
     "gen-frontend-env": "tsx scripts/generate-frontend-env.ts"
   },
   "devDependencies": {
