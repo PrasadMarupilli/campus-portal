@@ -1,4 +1,4 @@
-import { Link, Route, Routes, useNavigate } from "react-router-dom";
+import { NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
@@ -16,16 +16,25 @@ function NavBar() {
 
   if (!isAuthenticated) return null;
 
+  const linkClass = ({ isActive }: { isActive: boolean }) => `nav-link${isActive ? " active" : ""}`;
+
   return (
     <nav className="navbar">
-      <Link to="/dashboard">Dashboard</Link>
-      {isAdmin && <Link to="/students">Students</Link>}
-      <Link to="/courses">Courses</Link>
-      <Link to="/enrollments">Enrollments</Link>
-      <Link to="/attendance">Attendance</Link>
-      <Link to="/announcements">Announcements</Link>
-      <Link to="/documents">Documents</Link>
+      <div className="navbar-brand">
+        <span className="brand-mark">CP</span>
+        <span className="brand-name">Campus Portal</span>
+      </div>
+      <div className="navbar-links">
+        <NavLink to="/dashboard" className={linkClass}>Dashboard</NavLink>
+        {isAdmin && <NavLink to="/students" className={linkClass}>Students</NavLink>}
+        <NavLink to="/courses" className={linkClass}>Courses</NavLink>
+        <NavLink to="/enrollments" className={linkClass}>Enrollments</NavLink>
+        <NavLink to="/attendance" className={linkClass}>Attendance</NavLink>
+        <NavLink to="/announcements" className={linkClass}>Announcements</NavLink>
+        <NavLink to="/documents" className={linkClass}>Documents</NavLink>
+      </div>
       <button
+        className="btn-secondary"
         onClick={async () => {
           await signOut();
           navigate("/login");

@@ -21,6 +21,7 @@ export interface Course {
 }
 
 export interface Enrollment {
+  enrollmentId: string;
   studentId: string;
   courseId: string;
   enrolledAt: string;

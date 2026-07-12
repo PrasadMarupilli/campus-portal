@@ -3,6 +3,7 @@ import { DeleteCommand, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { ddb, TableNames } from "../shared/ddb-client";
 import { getCallerContext, requireAdmin, requireSelfOrAdmin } from "../shared/auth";
 import { badRequest, created, handleErrors, noContent, ok } from "../shared/http";
+import { generateEnrollmentId } from "../shared/ids";
 import type { Enrollment } from "../shared/types";
 
 export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer) =>
@@ -45,6 +46,7 @@ export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer) =>
         const body = JSON.parse(event.body ?? "{}");
         if (!body.studentId || !body.courseId) return badRequest("studentId and courseId are required");
         const enrollment: Enrollment = {
+          enrollmentId: generateEnrollmentId(),
           studentId: body.studentId,
           courseId: body.courseId,
           enrolledAt: new Date().toISOString(),

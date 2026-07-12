@@ -34,10 +34,13 @@ export function AnnouncementsPage() {
 
       <ul className="announcement-list">
         {announcements.map((a) => (
-          <li key={a.announcementId} className="card">
-            <h3>{a.pinned ? "📌 " : ""}{a.title}</h3>
+          <li key={a.announcementId} className={`card announcement-card${a.pinned ? " pinned" : ""}`}>
+            <h3>{a.pinned && <span className="pin-icon" aria-hidden>📌</span>}{a.title}</h3>
             <p>{a.body}</p>
-            <small>{a.audience} · {new Date(a.createdAt).toLocaleString()}</small>
+            <div className="announcement-meta">
+              <span className={`badge badge-audience-${a.audience.toLowerCase()}`}>{a.audience}</span>
+              <span className="timestamp">{new Date(a.createdAt).toLocaleString()}</span>
+            </div>
           </li>
         ))}
       </ul>

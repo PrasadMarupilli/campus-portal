@@ -35,6 +35,7 @@ export function CoursesPage() {
       <table>
         <thead>
           <tr>
+            <th>Course ID</th>
             <th>Code</th>
             <th>Title</th>
             <th>Department</th>
@@ -46,6 +47,7 @@ export function CoursesPage() {
         <tbody>
           {courses.map((c) => (
             <tr key={c.courseId}>
+              <td><span className="code">{c.courseId}</span></td>
               <td>{c.courseCode}</td>
               <td>{c.title}</td>
               <td>{c.department}</td>

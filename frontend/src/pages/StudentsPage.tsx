@@ -47,7 +47,7 @@ export function StudentsPage() {
               <td>{s.email}</td>
               <td>{s.program}</td>
               <td>{s.year}</td>
-              <td>{s.status}</td>
+              <td><span className={`badge badge-${s.status}`}>{s.status}</span></td>
             </tr>
           ))}
         </tbody>

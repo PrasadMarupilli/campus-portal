@@ -77,12 +77,12 @@ export function DocumentsPage() {
           {documents.map((d) => (
             <tr key={d.documentId}>
               <td>{d.fileName}</td>
-              <td>{d.docType}</td>
-              <td>{d.studentId}</td>
+              <td><span className="badge badge-doctype">{d.docType}</span></td>
+              <td><span className="code">{d.studentId}</span></td>
               <td>{new Date(d.uploadedAt).toLocaleString()}</td>
               <td>
-                <button onClick={() => onDownload(d)}>Download</button>
-                <button onClick={() => onDelete(d)}>Delete</button>
+                <button className="btn-secondary" onClick={() => onDownload(d)}>Download</button>
+                <button className="btn-danger" onClick={() => onDelete(d)}>Delete</button>
               </td>
             </tr>
           ))}

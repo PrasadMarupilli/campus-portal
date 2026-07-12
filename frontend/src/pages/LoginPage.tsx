@@ -26,11 +26,15 @@ export function LoginPage() {
 
   return (
     <div className="centered-page">
-      <form className="card" onSubmit={onSubmit}>
+      <form className="login-card" onSubmit={onSubmit}>
+        <div className="login-brand">
+          <span className="brand-mark large">CP</span>
+        </div>
         <h1>Campus Portal</h1>
+        <p className="login-subtitle">Sign in to continue</p>
         <label>
           Email
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
         </label>
         <label>
           Password
@@ -38,7 +42,7 @@ export function LoginPage() {
         </label>
         {error && <p className="error">{error}</p>}
         <button type="submit" disabled={submitting}>
-          {submitting ? "Signing in..." : "Sign in"}
+          {submitting ? "Signing in…" : "Sign in"}
         </button>
       </form>
     </div>

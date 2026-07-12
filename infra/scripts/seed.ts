@@ -17,6 +17,20 @@ import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 const OUTPUTS_PATH = path.join(__dirname, "..", "outputs.json");
 const DEMO_PASSWORD = "CampusDemo1";
 
+function generateCourseId(department: string): string {
+  const num = Math.floor(100 + Math.random() * 900);
+  const deptCode = department.replace(/[^A-Za-z]/g, "").toUpperCase().padEnd(2, "X").slice(0, 2);
+  const yy = String(new Date().getFullYear()).slice(-2);
+  return `${num}${deptCode}${yy}`;
+}
+
+function generateEnrollmentId(): string {
+  const letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+  const yy = String(new Date().getFullYear()).slice(-2);
+  const rand = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10)).join("");
+  return `${letter}${yy}${rand}`;
+}
+
 const TABLES = {
   students: "CampusPortal-Students",
   courses: "CampusPortal-Courses",
@@ -112,8 +126,8 @@ async function main() {
 
   console.log("Creating sample courses...");
   const courses = [
-    { courseId: randomUUID(), courseCode: "CS101", title: "Intro to Programming", department: "Computer Science", credits: 3, instructor: "Dr. Turing", semester: "Fall 2026" },
-    { courseId: randomUUID(), courseCode: "ME201", title: "Statics and Dynamics", department: "Mechanical Engineering", credits: 4, instructor: "Dr. Newton", semester: "Fall 2026" },
+    { courseId: generateCourseId("Computer Science"), courseCode: "CS101", title: "Intro to Programming", department: "Computer Science", credits: 3, instructor: "Dr. Turing", semester: "Fall 2026" },
+    { courseId: generateCourseId("Mechanical Engineering"), courseCode: "ME201", title: "Statics and Dynamics", department: "Mechanical Engineering", credits: 4, instructor: "Dr. Newton", semester: "Fall 2026" },
   ];
   for (const c of courses) {
     await ddb.send(new PutCommand({ TableName: TABLES.courses, Item: c }));
@@ -123,13 +137,13 @@ async function main() {
   await ddb.send(
     new PutCommand({
       TableName: TABLES.enrollments,
-      Item: { studentId: studentRecords[0].studentId, courseId: courses[0].courseId, enrolledAt: new Date().toISOString(), status: "enrolled" },
+      Item: { enrollmentId: generateEnrollmentId(), studentId: studentRecords[0].studentId, courseId: courses[0].courseId, enrolledAt: new Date().toISOString(), status: "enrolled" },
     })
   );
   await ddb.send(
     new PutCommand({
       TableName: TABLES.enrollments,
-      Item: { studentId: studentRecords[1].studentId, courseId: courses[1].courseId, enrolledAt: new Date().toISOString(), status: "enrolled" },
+      Item: { enrollmentId: generateEnrollmentId(), studentId: studentRecords[1].studentId, courseId: courses[1].courseId, enrolledAt: new Date().toISOString(), status: "enrolled" },
     })
   );
 

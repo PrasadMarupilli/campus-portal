@@ -1,9 +1,9 @@
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from "aws-lambda";
 import { DeleteCommand, GetCommand, PutCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { randomUUID } from "crypto";
 import { ddb, TableNames } from "../shared/ddb-client";
 import { getCallerContext, requireAdmin } from "../shared/auth";
 import { badRequest, created, handleErrors, noContent, notFound, ok } from "../shared/http";
+import { generateCourseId } from "../shared/ids";
 import type { Course } from "../shared/types";
 
 export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer) =>
@@ -33,7 +33,7 @@ export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer) =>
         const body = JSON.parse(event.body ?? "{}");
         if (!body.courseCode || !body.title) return badRequest("courseCode and title are required");
         const course: Course = {
-          courseId: randomUUID(),
+          courseId: generateCourseId(body.department),
           courseCode: body.courseCode,
           title: body.title,
           department: body.department ?? "",
