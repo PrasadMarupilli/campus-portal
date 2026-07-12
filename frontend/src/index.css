@@ -340,6 +340,27 @@ textarea {
   resize: vertical;
 }
 
+.hint-inline {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.success-card {
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+
+.success-card h3 {
+  color: var(--success);
+}
+
+.credential-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
 /* Buttons */
 
 button {

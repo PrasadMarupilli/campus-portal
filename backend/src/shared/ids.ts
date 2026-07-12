@@ -20,3 +20,14 @@ export function generateEnrollmentId(): string {
   const rand = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10)).join("");
   return `${letter}${yy}${rand}`;
 }
+
+// Satisfies the User Pool's password policy (min 8, upper, lower, digit).
+export function generateTempPassword(): string {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnopqrstuvwxyz";
+  const digits = "23456789";
+  const all = upper + lower + digits;
+  const pick = (chars: string) => chars[Math.floor(Math.random() * chars.length)];
+  const rest = Array.from({ length: 7 }, () => pick(all)).join("");
+  return `${pick(upper)}${pick(lower)}${pick(digits)}${rest}`;
+}

@@ -70,7 +70,9 @@ This creates one admin (`admin@campus.edu`) and two student accounts (`alice@cam
 
 ## Onboarding a new student
 
-Students authenticate via Cognito, and there's no public sign-up (only admins create accounts). A student's own pages (attendance, enrollments, documents) resolve their identity from a `custom:studentId` attribute on their Cognito login token, so the Cognito account and the database record need to be created together with matching IDs. Use the script, not the "Onboard a student" form on the Students page directly (that form is only for linking a Cognito user that already has a matching setup — see the in-app hint):
+Students authenticate via Cognito, and there's no public sign-up (only admins create accounts). **Admins can add students directly from the Students page in the app** — fill in email/name/program/year, submit, and the `POST /students` Lambda creates the Cognito account (with `custom:studentId` set to match the new database record from the start), adds them to the `Students` group, sets an initial password, and shows it once so you can share it with the student.
+
+For scripted/bulk onboarding instead, `infra/scripts/add-student.ts` does the same thing from the CLI:
 
 ```bash
 cd infra

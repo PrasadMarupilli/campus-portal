@@ -8,6 +8,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as cognito from "aws-cdk-lib/aws-cognito";
+import * as iam from "aws-cdk-lib/aws-iam";
 import * as path from "path";
 
 export interface ApiStackProps extends cdk.StackProps {
@@ -77,7 +78,7 @@ export class ApiStack extends cdk.Stack {
         bundling: { minify: true, sourceMap: false },
       });
 
-    const studentsFn = makeFn("students");
+    const studentsFn = makeFn("students", { USER_POOL_ID: props.userPool.userPoolId });
     const coursesFn = makeFn("courses");
     const enrollmentsFn = makeFn("enrollments");
     const attendanceFn = makeFn("attendance");
@@ -87,6 +88,19 @@ export class ApiStack extends cdk.Stack {
     // Least-privilege grants: each Lambda only gets access to the table(s)
     // and bucket it actually needs, not a shared blanket role.
     props.studentsTable.grantReadWriteData(studentsFn);
+    studentsFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        sid: "ManageStudentCognitoAccounts",
+        actions: [
+          "cognito-idp:AdminCreateUser",
+          "cognito-idp:AdminSetUserPassword",
+          "cognito-idp:AdminAddUserToGroup",
+          "cognito-idp:AdminGetUser",
+          "cognito-idp:AdminDeleteUser",
+        ],
+        resources: [props.userPool.userPoolArn],
+      })
+    );
     props.coursesTable.grantReadWriteData(coursesFn);
     props.enrollmentsTable.grantReadWriteData(enrollmentsFn);
     props.attendanceTable.grantReadWriteData(attendanceFn);

@@ -1,9 +1,18 @@
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from "aws-lambda";
 import { DeleteCommand, GetCommand, PutCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import {
+  AdminAddUserToGroupCommand,
+  AdminCreateUserCommand,
+  AdminDeleteUserCommand,
+  AdminGetUserCommand,
+  AdminSetUserPasswordCommand,
+} from "@aws-sdk/client-cognito-identity-provider";
 import { randomUUID } from "crypto";
 import { ddb, TableNames } from "../shared/ddb-client";
+import { cognito, UserPoolId } from "../shared/cognito-client";
 import { getCallerContext, requireAdmin, requireSelfOrAdmin, resolveStudentIdBySub } from "../shared/auth";
 import { badRequest, forbidden, handleErrors, notFound, ok, created, noContent } from "../shared/http";
+import { generateTempPassword } from "../shared/ids";
 import type { Student } from "../shared/types";
 
 export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer) =>
@@ -42,12 +51,48 @@ export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer) =>
       case "POST /students": {
         requireAdmin(ctx);
         const body = JSON.parse(event.body ?? "{}");
-        if (!body.cognitoSub || !body.email || !body.firstName || !body.lastName) {
-          return badRequest("cognitoSub, email, firstName, lastName are required");
+        if (!body.email || !body.firstName || !body.lastName) {
+          return badRequest("email, firstName, lastName are required");
         }
+
+        const newStudentId = randomUUID();
+        const password = typeof body.password === "string" && body.password.length > 0 ? body.password : generateTempPassword();
+
+        try {
+          await cognito.send(
+            new AdminCreateUserCommand({
+              UserPoolId,
+              Username: body.email,
+              UserAttributes: [
+                { Name: "email", Value: body.email },
+                { Name: "email_verified", Value: "true" },
+                { Name: "given_name", Value: body.firstName },
+                { Name: "family_name", Value: body.lastName },
+                { Name: "custom:studentId", Value: newStudentId },
+              ],
+              MessageAction: "SUPPRESS",
+            })
+          );
+        } catch (err) {
+          if (err instanceof Error && err.name === "UsernameExistsException") {
+            return badRequest("A Cognito user with this email already exists");
+          }
+          throw err;
+        }
+
+        await cognito.send(
+          new AdminSetUserPasswordCommand({ UserPoolId, Username: body.email, Password: password, Permanent: true })
+        );
+        await cognito.send(
+          new AdminAddUserToGroupCommand({ UserPoolId, Username: body.email, GroupName: "Students" })
+        );
+        const cognitoUser = await cognito.send(new AdminGetUserCommand({ UserPoolId, Username: body.email }));
+        const cognitoSub = cognitoUser.UserAttributes?.find((a) => a.Name === "sub")?.Value;
+        if (!cognitoSub) return badRequest("Could not resolve the new Cognito user's sub");
+
         const student: Student = {
-          studentId: randomUUID(),
-          cognitoSub: body.cognitoSub,
+          studentId: newStudentId,
+          cognitoSub,
           email: body.email,
           firstName: body.firstName,
           lastName: body.lastName,
@@ -57,7 +102,7 @@ export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer) =>
           createdAt: new Date().toISOString(),
         };
         await ddb.send(new PutCommand({ TableName: TableNames.students, Item: student }));
-        return created(student);
+        return created({ ...student, temporaryPassword: password });
       }
 
       case "PUT /students/{studentId}": {
@@ -91,6 +136,14 @@ export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer) =>
       case "DELETE /students/{studentId}": {
         requireAdmin(ctx);
         if (!studentId) return badRequest("studentId is required");
+        const existing = await ddb.send(new GetCommand({ TableName: TableNames.students, Key: { studentId } }));
+        if (existing.Item) {
+          try {
+            await cognito.send(new AdminDeleteUserCommand({ UserPoolId, Username: existing.Item.email }));
+          } catch (err) {
+            if (!(err instanceof Error && err.name === "UserNotFoundException")) throw err;
+          }
+        }
         await ddb.send(new DeleteCommand({ TableName: TableNames.students, Key: { studentId } }));
         return noContent();
       }

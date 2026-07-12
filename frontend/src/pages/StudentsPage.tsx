@@ -2,10 +2,15 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../api/client";
 import type { Student } from "../types";
 
+interface CreatedStudent extends Student {
+  temporaryPassword: string;
+}
+
 export function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ cognitoSub: "", email: "", firstName: "", lastName: "", program: "", year: 1 });
+  const [created, setCreated] = useState<CreatedStudent | null>(null);
+  const [form, setForm] = useState({ email: "", firstName: "", lastName: "", program: "", year: 1, password: "" });
 
   const load = () => api.get<Student[]>("/students").then(setStudents).catch((e) => setError(e.message));
 
@@ -16,9 +21,11 @@ export function StudentsPage() {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+    setCreated(null);
     try {
-      await api.post("/students", form);
-      setForm({ cognitoSub: "", email: "", firstName: "", lastName: "", program: "", year: 1 });
+      const result = await api.post<CreatedStudent>("/students", form);
+      setCreated(result);
+      setForm({ email: "", firstName: "", lastName: "", program: "", year: 1, password: "" });
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create student");
@@ -55,18 +62,22 @@ export function StudentsPage() {
         </tbody>
       </table>
 
-      <h2>Onboard a student</h2>
+      <h2>Add a student</h2>
       <p className="hint">
-        Recommended: run <code>npm run add-student -- --email=... --firstName=... --lastName=...</code> from{" "}
-        <code>infra/</code> — it creates the Cognito login and this record together, correctly linked.
-        The form below is for linking a student record to a Cognito user that <em>already exists</em>
-        (e.g. one created without the script) — enter its Cognito "sub" to link it.
+        Creates their login and student record together — share the credentials below with them once created.
       </p>
+
+      {created && (
+        <div className="card success-card">
+          <h3>Student created</h3>
+          <p>Share these login details with {created.firstName} — this password is shown only once.</p>
+          <div className="credential-row"><span>Student ID</span><span className="code">{created.studentId}</span></div>
+          <div className="credential-row"><span>Email</span><span className="code">{created.email}</span></div>
+          <div className="credential-row"><span>Password</span><span className="code">{created.temporaryPassword}</span></div>
+        </div>
+      )}
+
       <form className="card" onSubmit={onSubmit}>
-        <label>
-          Cognito sub
-          <input value={form.cognitoSub} onChange={(e) => setForm({ ...form, cognitoSub: e.target.value })} required />
-        </label>
         <label>
           Email
           <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
@@ -86,6 +97,10 @@ export function StudentsPage() {
         <label>
           Year
           <input type="number" min={1} value={form.year} onChange={(e) => setForm({ ...form, year: Number(e.target.value) })} />
+        </label>
+        <label>
+          Initial password <span className="hint-inline">(leave blank to auto-generate)</span>
+          <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Auto-generated if empty" />
         </label>
         <button type="submit">Create student</button>
       </form>
